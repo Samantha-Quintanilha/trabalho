@@ -1,0 +1,74 @@
+from flask import Flask, render_template, request, redirect, url_for
+from models import db, User, Service, Appointment, Feedback
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'qlite:///nail_salon.db'
+db.init_app(app)
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        name = request.form['name']
+        social_security_number = request.form['social_security_number']
+        telephone_number = request.form['telephone_number']
+        login = request.form['login']
+        password = request.form['password']
+        user = User(name=name, social_security_number=social_security_number, telephone_number=telephone_number, login=login, password=password)
+        db.session.add(user)
+        db.session.commit()
+        return redirect(url_for('login'))
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        login = request.form['login']
+        password = request.form['password']
+        user = User.query.filter_by(login=login, password=password).first()
+        if user:
+            return redirect(url_for('services'))
+    return render_template('login.html')
+
+@app.route('/services')
+def services():
+    services = Service.query.all()
+    return render_template('services.html', services=services)
+
+@app.route('/book_appointment', methods=['GET', 'POST'])
+def book_appointment():
+    if request.method == 'POST':
+        service_id = request.form['service_id']
+        date = request.form['date']
+        time = request.form['time']
+        payment_method = request.form['payment_method']
+        appointment = Appointment(user_id=current_user.id, service_id=service_id, date=date, time=time, payment_method=payment_method)
+        db.session.add(appointment)
+        db.session.commit()
+        return redirect(url_for('confirm_appointment'))
+    services = Service.query.all()
+    return render_template('book_appointment.html', services=services)
+
+@app.route('/confirm_appointment')
+def confirm_appointment():
+    return render_template('confirm_appointment.html')
+
+@app.route('/cancel_appointment')
+def cancel_appointment():
+    return render_template('cancel_appointment.html')
+
+@app.route('/feedback', methods=['GET', 'POST'])
+def feedback():
+    if request.method == 'POST':
+        comment = request.form['comment']
+        feedback = Feedback(user_id=current_user.id, comment=comment)
+        db.session.add(feedback)
+        db.session.commit()
+        return redirect(url_for('index'))
+    return render_template('feedback.html')
+
+if __name__ == '__main__':
+    app.run(debug=True)
